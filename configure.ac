@@ -14,7 +14,13 @@ AC_PROG_LIBTOOL
 AC_PROG_CXX
 AC_PROG_CC
 
-CXXFLAGS="-std=c++11 -Wall -O3"
+
+ARCH="arm64"
+MIN_SDK_VERSION="8.0"
+PROTOBUF_ARCH_LIBS="/Users/resec/edo/tensorflow/tensorflow/contrib/makefile/gen/protobuf_ios/lib"
+IPHONEOS_SYSROOT=`xcrun --sdk iphoneos --show-sdk-path`
+CXXFLAGS="-std=c++11 -Wall -Os -arch $ARCH -miphoneos-version-min=$MIN_SDK_VERSION -isysroot $IPHONEOS_SYSROOT"
+LDFLAGS="-arch $ARCH -miphoneos-version-min=$MIN_SDK_VERSION -L$PROTOBUF_ARCH_LIBS"
 
 PKG_CHECK_MODULES(PROTOBUF, protobuf >= 2.4.0)
 AC_SUBST(PROTOBUF_LIBS)
