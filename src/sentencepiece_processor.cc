@@ -42,9 +42,13 @@ bool SentencePieceProcessor::Load(const std::string &filename) {
     return false;
   }
 
+  return LoadFromIstream(ifs);
+}
+
+bool SentencePieceProcessor::LoadFromIstream(std::istream &istream) {
   model_proto_ = port::MakeUnique<ModelProto>();
-  if (!model_proto_->ParseFromIstream(&ifs)) {
-    LOG(WARNING) << "Model file is broken: " << filename;
+  if (!model_proto_->ParseFromIstream(&istream)) {
+    LOG(WARNING) << "Model file is broken";
     return false;
   }
 
@@ -57,6 +61,10 @@ bool SentencePieceProcessor::Load(const std::string &filename) {
 
 void SentencePieceProcessor::LoadOrDie(const std::string &filename) {
   CHECK(Load(filename)) << "failed to load model: " << filename;
+}
+
+void SentencePieceProcessor::LoadFromIstreamOrDie(std::istream &istream) {
+  CHECK(LoadFromIstream(istream)) << "failed to load model";
 }
 
 void SentencePieceProcessor::SetEncodeExtraOptions(
@@ -313,3 +321,4 @@ const ModelProto &SentencePieceProcessor::model_proto() const {
   return *model_proto_;
 }
 }  // namespace sentencepiece
+
