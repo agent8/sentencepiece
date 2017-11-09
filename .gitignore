@@ -49,3 +49,6 @@ spm_test
 
 *.pb.cc
 *.pb.h
+
+gen
+.DS_Store
