@@ -70,7 +70,7 @@ IPHONEOS_PLATFORM=$(xcrun --sdk iphoneos --show-sdk-platform-path)
 IPHONEOS_SYSROOT=$(xcrun --sdk iphoneos --show-sdk-path)
 IPHONESIMULATOR_PLATFORM=$(xcrun --sdk iphonesimulator --show-sdk-platform-path)
 IPHONESIMULATOR_SYSROOT=$(xcrun --sdk iphonesimulator --show-sdk-path)
-MIN_SDK_VERSION=8.0
+MIN_SDK_VERSION=9.0
 
 CXXFLAGS="-Os -std=c++11 -Wall"
 
@@ -107,14 +107,17 @@ for ARCH in `echo "${ARCHS}" | tr "[:upper:]" "[:lower:]"`; do
   HOST_PROTOBUF="/Users/resec/edo/tensorflow/tensorflow/contrib/makefile/gen/protobuf-host"
   TARGET_PROTOBUF="/Users/resec/edo/tensorflow/tensorflow/contrib/makefile/gen/protobuf_ios"
   PROTOC="$HOST_PROTOBUF/bin/protoc"
-  PROTOBUF_CFLAGS="-I$HOST_PROTOBUF/include"
-  PROTOBUF_LIBS="-L$TARGET_PROTOBUF/lib -lprotobuf"
+  PROTOBUF_CFLAGS="-I$HOST_PROTOBUF/include -D_THREAD_SAFE"
+  PROTOBUF_LIBS="-L$TARGET_PROTOBUF/lib -lprotobuf -D_THREAD_SAFE"
+
+  rm -rf src/.deps
 
   ./configure \
 --prefix="${ARCH_PREFIX}" \
 --exec-prefix="${ARCH_PREFIX}" \
+"IOS=IOS" \
 "ARCH=${ARCH}" \
-"MIN_SDK_VERSION=${MIN_SDK_VERSION}" \
+"MIN_SDK_VERSION=${ARCH_MIN_SDK_VERSION}" \
 "SYSROOT=${ARCH_SYSROOT}" \
 "ARCH_LDFLAGS=${ARCH_LDFLAGS}" \
 "PROTOC=${PROTOC}" \

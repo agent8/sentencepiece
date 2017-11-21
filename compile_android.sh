@@ -15,34 +15,37 @@
 # ==============================================================================
 # Builds Sentencepiece for Android. 
 
-# Pass ANDROID_API_VERSION as an environment variable to support
-# a different version of API.
-android_api_version="${ANDROID_API_VERSION:-21}"
-# Pass cc prefix to set the prefix for cc (e.g. ccache)
-cc_prefix="${CC_PREFIX}"
+ARCHS="arm64-v8a armeabi armeabi-v7a mips mips64 x86 x86_64"
 
-usage() {
-  echo "Usage: $(basename "$0") [-a:c]"
-  echo "-a [Arch] Architecture of target android [default=armeabi-v7a] \
-(supported architecture list: \
-arm64-v8a armeabi armeabi-v7a mips mips64 x86 x86_64)"
-  echo "-c Clean before building protobuf for target"
-  echo "\"NDK_ROOT\" should be defined as an environment variable."
-  exit 1
-}
+USAGE="usage: compile_android.sh [-a architecture]
+
+A script to build protobuf for ios.
+This script can only be run on MacOS host platforms.
+
+Options:
+-a architecture
+Target platforms to compile. The default is: $ARCHS.
+\"NDK_ROOT\" should be defined as an environment variable."
+
+while
+  ARG="${1-}"
+  case "$ARG" in
+  -*)  case "$ARG" in -*a*) ARCHS="${2?"$USAGE"}"; shift; esac
+       case "$ARG" in -*[!a]*) echo "$USAGE" >&2; exit 2;; esac;;
+  "")  break;;
+  *)   echo "$USAGE" >&2; exit 2;;
+  esac
+do
+  shift
+done
 
 SCRIPT_DIR=$(dirname $0)
 ARCHITECTURE=armeabi-v7a
 
-# debug options
-while getopts "a:c" opt_name; do
-  case "$opt_name" in
-    a) ARCHITECTURE=$OPTARG;;
-    c) clean=true;;
-    *) usage;;
-  esac
-done
-shift $((OPTIND - 1))
+ANDROID_API_VERSION=21
+NDK_ROOT="/Users/resec/Library/Android/sdk/ndk-bundle"
+HOST_PROTOBUF_ROOT="/Users/resec/edo/tensorflow/tensorflow/contrib/makefile/gen/protobuf-host"
+TARGET_PROTOBUF_ROOT="/Users/resec/edo/tensorflow/tensorflow/contrib/makefile/gen/protobuf_android"
 
 if [[ -z "${NDK_ROOT}" ]]
 then
@@ -58,61 +61,6 @@ then
   exit 1
 fi
 
-GENDIR=$(pwd)/gen/android/
-LIBDIR=${GENDIR}lib/$ARCHITECTURE
-mkdir -p ${LIBDIR}
-
-echo $OSTYPE | grep -q "darwin" && os_type="darwin" || os_type="linux"
-if [[ ${ARCHITECTURE} == "arm64-v8a" ]]; then
-    toolchain="aarch64-linux-android-4.9"
-    sysroot_arch="arm64"
-    bin_prefix="aarch64-linux-android"
-elif [[ ${ARCHITECTURE} == "armeabi" ]]; then
-    toolchain="arm-linux-androideabi-4.9"
-    sysroot_arch="arm"
-    bin_prefix="arm-linux-androideabi"
-elif [[ ${ARCHITECTURE} == "armeabi-v7a" ]]; then
-    toolchain="arm-linux-androideabi-4.9"
-    sysroot_arch="arm"
-    bin_prefix="arm-linux-androideabi"
-    march_option="-march=armv7-a"
-elif [[ ${ARCHITECTURE} == "mips" ]]; then
-    toolchain="mipsel-linux-android-4.9"
-    sysroot_arch="mips"
-    bin_prefix="mipsel-linux-android"
-elif [[ ${ARCHITECTURE} == "mips64" ]]; then
-    toolchain="mips64el-linux-android-4.9"
-    sysroot_arch="mips64"
-    bin_prefix="mips64el-linux-android"
-elif [[ ${ARCHITECTURE} == "x86" ]]; then
-    toolchain="x86-4.9"
-    sysroot_arch="x86"
-    bin_prefix="i686-linux-android"
-elif [[ ${ARCHITECTURE} == "x86_64" ]]; then
-    toolchain="x86_64-4.9"
-    sysroot_arch="x86_64"
-    bin_prefix="x86_64-linux-android"
-else
-    echo "architecture ${ARCHITECTURE} is not supported." 1>&2
-    usage
-    exit 1
-fi
-
-echo "Android API Version = ${android_api_version} CC_PREFIX = ${cc_prefix}"
-
-export PATH=\
-"${NDK_ROOT}/toolchains/${toolchain}/prebuilt/${os_type}-x86_64/bin:$PATH"
-export SYSROOT=\
-"${NDK_ROOT}/platforms/android-${android_api_version}/arch-${sysroot_arch}"
-export CC="${cc_prefix} ${bin_prefix}-gcc --sysroot ${SYSROOT}"
-export CXX="${cc_prefix} ${bin_prefix}-g++ --sysroot ${SYSROOT}"
-export CXXSTL=\
-"${NDK_ROOT}/sources/cxx-stl/gnu-libstdc++/4.9/libs/${ARCHITECTURE}"
-export PROTOBUF_LIBS=\
-"-L${TARGET_PROTOBUF_ROOT}/${ARCHITECTURE}/lib -lprotobuf"
-export PROTOBUF_CFLAGS=\
-"-I${HOST_PROTOBUF_ROOT}/include" 
-
 ./autogen.sh
 if [ $? -ne 0 ]
 then
@@ -120,35 +68,90 @@ then
   exit 1
 fi
 
-./configure \
+for ARCHITECTURE in ${ARCHS}; do
+
+  GENDIR=$(pwd)/gen/android/
+  LIBDIR=${GENDIR}lib/$ARCHITECTURE
+  mkdir -p ${LIBDIR}
+
+  echo $OSTYPE | grep -q "darwin" && os_type="darwin" || os_type="linux"
+  if [[ ${ARCHITECTURE} == "arm64-v8a" ]]; then
+      toolchain="aarch64-linux-android-4.9"
+      sysroot_arch="arm64"
+      bin_prefix="aarch64-linux-android"
+  elif [[ ${ARCHITECTURE} == "armeabi" ]]; then
+      toolchain="arm-linux-androideabi-4.9"
+      sysroot_arch="arm"
+      bin_prefix="arm-linux-androideabi"
+  elif [[ ${ARCHITECTURE} == "armeabi-v7a" ]]; then
+      toolchain="arm-linux-androideabi-4.9"
+      sysroot_arch="arm"
+      bin_prefix="arm-linux-androideabi"
+      march_option="-march=armv7-a"
+  elif [[ ${ARCHITECTURE} == "mips" ]]; then
+      toolchain="mipsel-linux-android-4.9"
+      sysroot_arch="mips"
+      bin_prefix="mipsel-linux-android"
+  elif [[ ${ARCHITECTURE} == "mips64" ]]; then
+      toolchain="mips64el-linux-android-4.9"
+      sysroot_arch="mips64"
+      bin_prefix="mips64el-linux-android"
+  elif [[ ${ARCHITECTURE} == "x86" ]]; then
+      toolchain="x86-4.9"
+      sysroot_arch="x86"
+      bin_prefix="i686-linux-android"
+  elif [[ ${ARCHITECTURE} == "x86_64" ]]; then
+      toolchain="x86_64-4.9"
+      sysroot_arch="x86_64"
+      bin_prefix="x86_64-linux-android"
+  else
+      echo "architecture ${ARCHITECTURE} is not supported." 1>&2
+      echo USAGE
+      exit 1
+  fi
+
+  echo "Android API Version = ${ANDROID_API_VERSION}"
+
+  export PATH="${NDK_ROOT}/toolchains/${toolchain}/prebuilt/${os_type}-x86_64/bin:$PATH"
+  export SYSROOT="${NDK_ROOT}/platforms/android-${ANDROID_API_VERSION}/arch-${sysroot_arch}"
+  export CC="${bin_prefix}-gcc --sysroot ${SYSROOT}"
+  export CXX="${bin_prefix}-g++ --sysroot ${SYSROOT}"
+  export CXXSTL="${NDK_ROOT}/sources/cxx-stl/gnu-libstdc++/4.9/libs/${ARCHITECTURE}"
+  export PROTOC="${HOST_PROTOBUF_ROOT}/bin/protoc"
+  export PROTOBUF_LIBS="-L${TARGET_PROTOBUF_ROOT}/${ARCHITECTURE}/lib -lprotobuf -D_THREAD_SAFE"
+  export PROTOBUF_CFLAGS="-I${HOST_PROTOBUF_ROOT}/include -D_THREAD_SAFE"
+
+  rm -rf src/.deps
+
+  ./configure \
 --host="${bin_prefix}" \
 --with-sysroot="${SYSROOT}" \
 CFLAGS="${march_option}" \
-CXXFLAGS="${march_option} \
+CXXFLAGS="-std=c++11 -Wall -Os ${march_option} \
 -I${NDK_ROOT}/sources/android/support/include \
 -I${NDK_ROOT}/sources/cxx-stl/gnu-libstdc++/4.9/include \
 -I${NDK_ROOT}/sources/cxx-stl/gnu-libstdc++/4.9/libs/${ARCHITECTURE}/include" \
-LDFLAGS="-L${NDK_ROOT}/sources/cxx-stl/gnu-libstdc++/4.9/libs/${ARCHITECTURE}"
+LDFLAGS="-L${NDK_ROOT}/sources/cxx-stl/gnu-libstdc++/4.9/libs/${ARCHITECTURE}" \
 LIBS="-llog -lz -lm"
 
-if [ $? -ne 0 ]
-then
-  echo "./configure command failed."
-  exit 1
-fi
+  if [ $? -ne 0 ]
+  then
+    echo "./configure command failed."
+    exit 1
+  fi
 
-if [[ ${clean} == true ]]; then
   echo "clean before build"
   make clean
-fi
 
-make -j4
-if [ $? -ne 0 ]
-then
-  echo "make command failed."
-  exit 1
-fi
+  make -j4
+  if [ $? -ne 0 ]
+  then
+    echo "make command failed."
+    exit 1
+  fi
 
-cp src/.libs/libsentencepiece.a $LIBDIR/libsentencepiece.a
+  cp src/.libs/libsentencepiece.a $LIBDIR/libsentencepiece.a
+
+done
 
 echo "$(basename $0) finished successfully!!!"

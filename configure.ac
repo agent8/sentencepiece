@@ -14,11 +14,9 @@ AC_PROG_LIBTOOL
 AC_PROG_CXX
 AC_PROG_CC
 
-CXXFLAGS="$CXXFLAGS -std=c++11 -Wall -Os"
-
 if test -n "$IOS"; then
-  CXXFLAGS="$CXXFLAGS -arch $ARCH -miphoneos-version-min=$MIN_SDK_VERSION -isysroot $SYSROOT"
-  LDFLAGS="-arch $ARCH -miphoneos-version-min=$MIN_SDK_VERSION $ARCH_LDFLAGS"
+  CXXFLAGS="-std=c++11 -Wall -Os -arch $ARCH $MIN_SDK_VERSION -isysroot $SYSROOT -fembed-bitcode"
+  LDFLAGS="-arch $ARCH $MIN_SDK_VERSION $ARCH_LDFLAGS -fembed-bitcode"
 fi
 
 PKG_CHECK_MODULES(PROTOBUF, protobuf >= 2.4.0)
